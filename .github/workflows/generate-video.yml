@@ -1,3 +1,4 @@
+# .github/workflows/generate-video.yml
 name: Generate Real-Estate Video
 
 on:
@@ -32,6 +33,22 @@ jobs:
       
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      
+      - name: Create topics manifest
+        run: |
+          echo '{
+            "videos": [{
+              "sections": [
+                {"text": "Gurgaon luxury apartments are booming in 2026"},
+                {"text": "Noida Expressway sees record prices"},
+                {"text": "Greater Noida West emerges as a hotspot"},
+                {"text": "Dwarka Expressway connecting Delhi and Gurgaon"},
+                {"text": "Affordable housing in Delhi NCR"},
+                {"text": "Real estate market outlook 2026"}
+              ]
+            }]
+          }' > output/pending_video_review.json
+          mkdir -p logs
       
       - name: Generate video with stock footage
         run: python src/stock_footage.py
