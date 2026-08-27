@@ -143,12 +143,17 @@ def synthesize(sections: list[str], out_wav: str | Path,
         return out_wav, dur
 
     provider = (os.environ.get("TTS_PROVIDER") or config.get("provider", "coqui"))
+    # Allow runtime voice override (e.g. TTS_VOICE=en-IN-PrabhatNeural)
+    voice_override = os.environ.get("TTS_VOICE")
     logger.info("TTS provider=%s sections=%d", provider, len(sections))
 
     if provider == "coqui":
         _synthesize_coqui(sections, out_wav, config.get("coqui", {}), audio_cfg)
     elif provider == "edge":
-        asyncio.run(_synthesize_edge(sections, out_wav, config.get("edge", {}), audio_cfg))
+        edge_cfg = dict(config.get("edge", {}))
+        if voice_override:
+            edge_cfg["voice"] = voice_override
+        asyncio.run(_synthesize_edge(sections, out_wav, edge_cfg, audio_cfg))
     else:
         raise ValueError(f"Unknown TTS provider: {provider}")
 

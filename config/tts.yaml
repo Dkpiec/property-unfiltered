@@ -1,8 +1,8 @@
 # TTS configuration — Indian male English voiceover.
 # provider: coqui (XTTS-v2, open-source, CPU) | edge (edge-tts, fast fallback)
-# Override at runtime with TTS_PROVIDER=coqui|edge
+# Override at runtime with TTS_PROVIDER=coqui|edge  and  TTS_VOICE=<voice>
 
-provider: coqui
+provider: edge
 
 coqui:
   model: "XTTS-v2"
@@ -14,7 +14,8 @@ coqui:
   sample_rate: 24000
 
 edge:
-  voice: "en-IN-PrabhatNeural"   # Indian male English
+  # Approved by dhar (2026-08-27): Indian male English voice.
+  voice: "en-IN-PrabhatNeural"
   rate: "+0%"
   volume: "+0%"
 
