@@ -73,6 +73,12 @@ def _synthesize_dry_run(sections: list[str], out_wav: Path,
 
 def _synthesize_coqui(sections: list[str], out_wav: Path,
                       coqui_cfg: dict, audio_cfg: dict) -> None:
+    # Coqui TTS >=0.22.0 blocks on an interactive license prompt
+    # (TTS/utils/manage.py ask_tos -> input()). That prompt raises
+    # "EOF when reading a line" on GitHub Actions runners (no stdin),
+    # so auto-accept the non-commercial CPML terms via env var BEFORE
+    # importing TTS. See https://coqui.ai/cpml
+    os.environ.setdefault("COQUI_TOS_AGREED", "1")
     from TTS.api import TTS
 
     tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)

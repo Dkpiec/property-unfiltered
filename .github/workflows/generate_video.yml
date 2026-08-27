@@ -44,8 +44,14 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          TTS_PROVIDER:  ${{ vars.TTS_PROVIDER || 'edge' }}
+          # TTS_PROVIDER is pinned to edge: the approved voice
+          # (en-IN-PrabhatNeural) is an edge-tts voice, and the coqui
+          # provider blocks on an interactive license prompt (EOF on
+          # runners). COQUI_TOS_AGREED=1 is set as belt-and-suspenders
+          # so even a coqui path can never prompt for input.
+          TTS_PROVIDER:  edge
           TTS_VOICE:     ${{ vars.TTS_VOICE || 'en-IN-PrabhatNeural' }}
+          COQUI_TOS_AGREED: "1"
       - name: Upload manifest + video
         uses: actions/upload-artifact@v4
         with:
