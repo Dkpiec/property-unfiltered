@@ -246,13 +246,13 @@ def _final_mux(video_track: Path, audio: Path, srt: Path,
         "-i", str(audio),
         "-filter_complex", f"[0:v]{','.join(vf)}[v]",
         "-map", "[v]", "-map", "1:a",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-        "-profile:v", "high", "-pix_fmt", "yuv420p",
-        # Keep memory low (matters on GH Actions 7GB runners and capped
-        # containers): fewer lookahead frames, fixed thread count.
-        "-x264-params", "rc-lookahead=10:sync-lookahead=0",
-        "-threads", "2",
-        "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+        "-profile:v", "baseline", "-pix_fmt", "yuv420p",
+        # Memory-efficient encoding (matters on GH Actions 7GB runners and
+        # capped containers): minimal lookahead, single thread.
+        "-x264-params", "rc-lookahead=1:sync-lookahead=0:frame-threads=1",
+        "-threads", "1",
+        "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
         "-movflags", "+faststart",
         "-shortest",
         str(out_mp4),
