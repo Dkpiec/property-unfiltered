@@ -35,7 +35,9 @@ jobs:
           gh run download "${{ inputs.topics_run_id }}" \
             --repo "${{ github.repository }}" \
             --name "pending-topics-${{ inputs.topics_run_id }}" \
-            --dir .
+            --dir /tmp/topics-artifact
+          mkdir -p output
+          cp "$(find /tmp/topics-artifact -name 'pending_topics.json' | head -1)" output/pending_topics.json
       - name: Generate video
         run: python src/generate_video.py --topics "${{ inputs.topic_indices }}"
         env:

@@ -59,7 +59,11 @@ jobs:
           gh run download "${{ inputs.run_id }}" \
             --repo "${{ github.repository }}" \
             --name "${{ inputs.artifact_name }}" \
-            --dir .
+            --dir /tmp/video-artifact
+          mkdir -p output
+          cp "$(find /tmp/video-artifact -name 'pending_video_review.json' | head -1)" output/pending_video_review.json
+          # Restore videos to output/ so manifest video_path entries resolve
+          for v in $(find /tmp/video-artifact -name '*.mp4'); do cp "$v" output/; done
       - name: Upload to YouTube
         run: |
           python src/youtube_upload.py \
