@@ -29,10 +29,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Download topics manifest (pending_topics.json)
-        uses: actions/download-artifact@v4
-        with:
-          name: pending-topics-${{ inputs.topics_run_id }}
-          run-id: ${{ inputs.topics_run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ inputs.topics_run_id }}" \
+            --repo "${{ github.repository }}" \
+            --name "pending-topics-${{ inputs.topics_run_id }}" \
+            --dir .
       - name: Generate video
         run: python src/generate_video.py --topics "${{ inputs.topic_indices }}"
         env:
