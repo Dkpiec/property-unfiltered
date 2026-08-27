@@ -10,6 +10,10 @@ on:
         description: "Comma-separated topic ids from pending_topics.json, e.g. '1,3'"
         required: true
         type: string
+      topics_run_id:
+        description: "Run ID of the generate_topics workflow that produced pending_topics.json"
+        required: true
+        type: number
 
 jobs:
   generate:
@@ -23,6 +27,11 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Download topics manifest (pending_topics.json)
+        uses: actions/download-artifact@v4
+        with:
+          name: pending-topics-${{ inputs.topics_run_id }}
+          run-id: ${{ inputs.topics_run_id }}
       - name: Generate video
         run: python src/generate_video.py --topics "${{ inputs.topic_indices }}"
         env:
