@@ -1,0 +1,23 @@
+# TTS configuration — Indian male English voiceover.
+# provider: coqui (XTTS-v2, open-source, CPU) | edge (edge-tts, fast fallback)
+# Override at runtime with TTS_PROVIDER=coqui|edge
+
+provider: coqui
+
+coqui:
+  model: "XTTS-v2"
+  language: "en"
+  # Leave empty to use the built-in pretrained reference speaker
+  # (no personal voice sample required).
+  speaker_wav: ""
+  chunk_chars: 500          # split long scripts into chunks for CPU stability
+  sample_rate: 24000
+
+edge:
+  voice: "en-IN-PrabhatNeural"   # Indian male English
+  rate: "+0%"
+  volume: "+0%"
+
+audio:
+  sample_rate: 24000
+  channels: 1

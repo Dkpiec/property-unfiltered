@@ -1,0 +1,41 @@
+name: Generate Video
+# Triggered manually (by Hermes or via GitHub UI) with comma-separated topic
+# ids from the latest pending_topics.json artifact.
+# Produces a video MP4 + pending_video_review.json → uploaded as artifact for
+# Gate-2 (human approval).
+on:
+  workflow_dispatch:
+    inputs:
+      topic_indices:
+        description: "Comma-separated topic ids from pending_topics.json, e.g. '1,3'"
+        required: true
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU torch (for Coqui TTS)
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Generate video
+        run: python src/generate_video.py --topics "${{ inputs.topic_indices }}"
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          TTS_PROVIDER:  ${{ vars.TTS_PROVIDER || 'coqui' }}
+      - name: Upload manifest + video
+        uses: actions/upload-artifact@v4
+        with:
+          name: pending-video-${{ github.run_id }}
+          path: |
+            output/pending_video_review.json
+            output/video_*.mp4

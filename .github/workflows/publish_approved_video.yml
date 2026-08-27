@@ -1,0 +1,71 @@
+name: Publish Approved Video
+# Triggered manually (by Hermes) after the user has approved a video via
+# Telegram. Downloads the artifact from the generate_video run, reads the
+# review manifest, and uploads to YouTube with the approved metadata.
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: "Name of the artifact from generate_video (e.g. pending-video-12345)"
+        required: true
+        type: string
+      run_id:
+        description: "Run ID of the generate_video workflow that produced the artifact"
+        required: true
+        type: number
+      index:
+        description: "Which video review within the manifest (0-based)"
+        default: 0
+        type: number
+      title_index:
+        description: "Which suggested title to use (0-4)"
+        default: 0
+        type: number
+      custom_title:
+        description: "Override the title entirely (leave empty to use title_index)"
+        default: ""
+        type: string
+      privacy:
+        description: "YouTube privacy status"
+        default: "unlisted"
+        type: choice
+        options:
+          - public
+          - unlisted
+          - private
+          - scheduled
+      publish_at:
+        description: "ISO timestamp for scheduled publishing (only if privacy=scheduled)"
+        default: ""
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download artifact from generate_video run
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          run-id: ${{ inputs.run_id }}
+      - name: Upload to YouTube
+        run: |
+          python src/youtube_upload.py \
+            --manifest output/pending_video_review.json \
+            --index ${{ inputs.index }} \
+            --title-index ${{ inputs.title_index }} \
+            ${{ inputs.custom_title != '' && format('--custom-title "{0}"', inputs.custom_title) || '' }} \
+            --privacy ${{ inputs.privacy }} \
+            ${{ inputs.publish_at != '' && format('--publish-at {0}', inputs.publish_at) || '' }}
+        env:
+          YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_CATEGORY_ID:  ${{ vars.YOUTUBE_CATEGORY_ID || '27' }}

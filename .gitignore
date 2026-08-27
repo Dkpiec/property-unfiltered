@@ -1,0 +1,34 @@
+# Outputs & logs (never commit generated media)
+output/
+logs/
+*.mp4
+*.wav
+*.mp3
+*.srt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Secrets & local state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+client_secret*.json
+token*.json
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local test artifacts
+/tmp/
+test-output/

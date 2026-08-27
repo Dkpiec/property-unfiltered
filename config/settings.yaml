@@ -1,0 +1,48 @@
+# Property Unfiltered — channel & pipeline settings
+# No secrets here. Everything overridable via environment variables.
+
+channel:
+  name: "Property Unfiltered"
+  niche: "Delhi NCR real estate"
+  language: "en"
+
+content:
+  shorts:
+    duration_sec: [30, 60]       # target 45-60s
+    words: [130, 170]
+  long:
+    duration_sec: [480, 720]     # 8-12 min
+    words: [1100, 1500]
+  titles_count: 5
+  tags_max: 15
+  thumbnail_ideas: [2, 3]
+
+topics:
+  candidates_per_cycle: [10, 15]
+  final_count: 5                 # top-5 presented for approval
+  min_shorts: 1                  # guarantee a mix
+  min_long: 1
+  # Keyword weights used to rank candidate topics (relevance scoring)
+  keywords:
+    - {kw: "Gurgaon", weight: 1.0}
+    - {kw: "Noida", weight: 1.0}
+    - {kw: "Greater Noida", weight: 0.8}
+    - {kw: "Delhi", weight: 0.8}
+    - {kw: "investment", weight: 1.0}
+    - {kw: "RERA", weight: 0.9}
+    - {kw: "price", weight: 1.0}
+    - {kw: "infrastructure", weight: 0.8}
+    - {kw: "first-time buyer", weight: 0.7}
+    - {kw: "metro", weight: 0.7}
+    - {kw: "Dwarka Expressway", weight: 0.6}
+    - {kw: "Noida Expressway", weight: 0.6}
+
+youtube:
+  # categoryId map (YouTube Data API v3). Education=27, Howto & Style=26
+  category: 27
+  default_privacy: "unlisted"    # safe default; override at publish time
+  # publish_at format: "YYYY-MM-DDTHH:MM:SSZ" (only honored when privacy=scheduled)
+
+paths:
+  output: "output"
+  logs: "logs"

@@ -1,0 +1,30 @@
+# ── LLM ──────────────────────────────────────────────────────────────
+# Google Gemini (primary, free tier). Key: GOOGLE_API_KEY
+google-genai>=1.0
+# OpenAI-compatible client for fallback providers (Groq/Llama etc.). Key: GROQ_API_KEY
+openai>=1.40
+
+# ── YouTube Data API v3 (upload) ─────────────────────────────────────
+google-api-python-client>=2.130
+google-auth-oauthlib>=1.2
+google-auth>=2.30
+
+# ── TTS ──────────────────────────────────────────────────────────────
+# Primary: Coqui XTTS-v2 (open-source, CPU). NOTE: needs torch — in the
+# GitHub Actions workflow install CPU torch FIRST:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# then this requirement.
+TTS>=0.22.0
+# Fast fallback: edge-tts en-IN-PrabhatNeural (Indian male English)
+edge-tts>=6.1
+
+# ── STT (subtitle word-timing + TTS QA) ──────────────────────────────
+faster-whisper>=1.0
+
+# ── Core ─────────────────────────────────────────────────────────────
+requests>=2.31
+python-dotenv>=1.0
+PyYAML>=6.0
+
+# ── Test ─────────────────────────────────────────────────────────────
+pytest>=8.0

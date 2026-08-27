@@ -1,0 +1,31 @@
+name: Generate Topics
+# Runs on schedule (every 2 days) or manually via workflow_dispatch.
+# Produces output/pending_topics.json → uploaded as artifact for Hermes to
+# monitor and forward to the user for Gate-1 approval.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 */2 * *"
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Generate topic candidates
+        run: python src/topic_generator.py
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
+      - name: Upload manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: pending-topics-${{ github.run_id }}
+          path: output/pending_topics.json

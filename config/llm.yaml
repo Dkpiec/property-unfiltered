@@ -1,0 +1,39 @@
+# LLM provider/model configuration per task.
+# Provider keys are read from environment variables, never stored here.
+#   gemini            -> GOOGLE_API_KEY
+#   openai_compatible -> any key via OPENAI_API_KEY (e.g. Groq: GROQ_API_KEY)
+#
+# Env overrides (optional):
+#   LLM_PROVIDER  -> force provider for all tasks
+#   LLM_MODEL     -> force model for all tasks
+
+tasks:
+  topics:
+    provider: gemini
+    model: gemini-2.0-flash
+    temperature: 0.7
+    max_tokens: 4096
+  script:
+    provider: gemini
+    model: gemini-2.0-flash
+    temperature: 0.6
+    max_tokens: 8192
+  metadata:
+    provider: gemini
+    model: gemini-2.0-flash
+    temperature: 0.5
+    max_tokens: 4096
+
+fallback:
+  provider: openai_compatible
+  model: llama-3.3-70b-versatile
+  base_url: "https://api.groq.com/openai/v1"
+  api_key_env: "GROQ_API_KEY"
+  temperature: 0.5
+  max_tokens: 4096
+
+request:
+  retries: 3
+  backoff_base_seconds: 2
+  # If the primary provider fails entirely, switch to fallback provider.
+  failover: true
