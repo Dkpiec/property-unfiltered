@@ -22,6 +22,8 @@ venv/
 *.key
 client_secret*.json
 token*.json
+yt_token.json
+*_token.json
 
 # OS / editor
 .DS_Store

@@ -7,6 +7,14 @@ Propose 10 to 15 candidate video topics for this content cycle. Then I will rank
 and pick the top 5. Prefer topics that are factual, specific, and searchable —
 NOT hype or clickbait.
 
+CURRENT YEAR / FRESHNESS (MANDATORY)
+- The CURRENT YEAR is {current_year} and today is {today}.
+- Use the current year {current_year} in titles, comparisons, and data framing.
+  NEVER use an outdated year (e.g. 2024 or 2025) unless the topic is explicitly
+  historical. A topic labelled with a stale year is rejected.
+- Prefer topics anchored to current facts: current-year prices, recent RERA
+  rulings, newly opened metro/infrastructure, 2026 project launches.
+
 QUALITY GUIDANCE (research-backed)
 - Favor formats that rank and get cited: price comparisons, definitive guides,
   data/stat-driven analyses, "X vs Y" comparisons, RERA/policy explainers, and

@@ -107,7 +107,7 @@ def main() -> int:
         prompt_template = utils.load_prompt("config/prompts/topics_prompt.txt")
         keywords = settings["topics"]["keywords"]
 
-        prompt = build_context(settings) + prompt_template
+        prompt = build_context(settings) + utils.inject_freshness(prompt_template)
         logger.info("Calling LLM for candidate topics...")
         data, _raw = llm.generate("topics", prompt)
 

@@ -171,6 +171,21 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def current_year() -> int:
+    from datetime import datetime
+    return datetime.now().year
+
+
+def inject_freshness(prompt: str) -> str:
+    """Fill {current_year} / {today} placeholders so LLM prompts always use
+    the current date (prevents stale-year content like '2024' in 2026)."""
+    from datetime import datetime
+    now = datetime.now()
+    return (prompt
+            .replace("{current_year}", str(now.year))
+            .replace("{today}", now.strftime("%Y-%m-%d")))
+
+
 # ── Telegram notifications ─────────────────────────────────────────────
 def send_telegram_message(text: str, parse_mode: str = "HTML") -> None:
     """Send a message via the Telegram Bot API using env credentials.

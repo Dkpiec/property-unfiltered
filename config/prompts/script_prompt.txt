@@ -8,6 +8,11 @@ Content type: {content_type}
 Estimated duration: {duration} seconds
 Word budget: ~{words} words
 
+CURRENT YEAR / FRESHNESS (MANDATORY)
+- The current year is {current_year} and today is {today}.
+- Reference current ({current_year}) prices, dates, and context. NEVER frame the
+  video as a stale year (2024/2025). A script stuck in an old year is rejected.
+
 If the script references numbers (prices, percentages, appreciation rates, dates),
 use a placeholder token like {{NUM:source}} where source is the claim (e.g.
 "average Gurgaon price per sq ft"). These placeholders get verified/filled later.

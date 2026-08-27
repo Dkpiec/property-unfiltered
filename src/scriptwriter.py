@@ -29,7 +29,7 @@ def write_script(topic: dict, settings: dict) -> dict:
 
     template = utils.load_prompt("config/prompts/script_prompt.txt")
     prompt = _safe_format(
-        template,
+        utils.inject_freshness(template),
         title=topic["title"],
         content_type=ctype,
         duration=duration,
@@ -58,7 +58,7 @@ def write_metadata(working_title: str, content_type: str, full_script: str) -> d
     """Generate titles/description/tags/thumbnail ideas for the video."""
     template = utils.load_prompt("config/prompts/metadata_prompt.txt")
     prompt = _safe_format(
-        template,
+        utils.inject_freshness(template),
         working_title=working_title,
         content_type=content_type,
         script=full_script,

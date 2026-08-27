@@ -8,6 +8,9 @@ Working title: {working_title}
 Content type: {content_type}
 Script: {script}
 
+CURRENT YEAR: {current_year} (today is {today}). Use current-year framing in
+titles and description, and include a fresh dateline. Never use a stale year.
+
 QUALITY GUIDANCE
 - Titles: lead with a concrete hook or data point; prefer comparison or
   definitive-guide framing; keep under 60 chars; 5 distinct options.
