@@ -1,17 +1,17 @@
-name: Generate Video
-# Triggered manually (by Hermes or via GitHub UI) with comma-separated topic
-# ids from the latest pending_topics.json artifact.
+name: Generate Video (Gate 3)
+# Triggered manually (by Hermes or via GitHub UI) with comma-separated content
+# indices from the latest pending_content_review.json artifact (Gate-2 approved).
 # Produces a video MP4 + pending_video_review.json → uploaded as artifact for
-# Gate-2 (human approval).
+# Gate-3 (human approval of the final video).
 on:
   workflow_dispatch:
     inputs:
-      topic_indices:
-        description: "Comma-separated topic ids from pending_topics.json, e.g. '1,3'"
+      content_indices:
+        description: "Comma-separated content indices from pending_content_review.json, e.g. '1'"
         required: true
         type: string
-      topics_run_id:
-        description: "Run ID of the generate_topics workflow that produced pending_topics.json"
+      content_run_id:
+        description: "Run ID of the generate_content workflow that produced pending_content_review.json"
         required: true
         type: number
 
@@ -28,27 +28,25 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Download topics manifest (pending_topics.json)
+      - name: Download content manifest (pending_content_review.json)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download "${{ inputs.topics_run_id }}" \
+          gh run download "${{ inputs.content_run_id }}" \
             --repo "${{ github.repository }}" \
-            --name "pending-topics-${{ inputs.topics_run_id }}" \
-            --dir /tmp/topics-artifact
+            --name "pending-content-${{ inputs.content_run_id }}" \
+            --dir /tmp/content-artifact
           mkdir -p output
-          cp "$(find /tmp/topics-artifact -name 'pending_topics.json' | head -1)" output/pending_topics.json
+          cp "$(find /tmp/content-artifact -name 'pending_content_review.json' | head -1)" output/pending_content_review.json
       - name: Install ffmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           ffmpeg -version | head -1
       - name: Generate video
-        run: python src/generate_video.py --topics "${{ inputs.topic_indices }}"
+        run: python src/generate_pixabay_video.py --contents "${{ inputs.content_indices }}"
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           # TTS_PROVIDER is pinned to edge: the approved voice
           # (en-IN-PrabhatNeural) is an edge-tts voice, and the coqui
           # provider blocks on an interactive license prompt (EOF on
