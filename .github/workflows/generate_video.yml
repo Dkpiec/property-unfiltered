@@ -1,19 +1,28 @@
 name: Generate Video (Gate 3)
 # Triggered manually (by Hermes or via GitHub UI) with comma-separated content
-# indices from the latest pending_content_review.json artifact (Gate-2 approved).
+# indices from the content manifest (Gate-2 approved).
 # Produces a video MP4 + pending_video_review.json → uploaded as artifact for
 # Gate-3 (human approval of the final video).
+#
+# Content manifest source: by default the latest generate_content artifact is
+# downloaded (content_run_id). For a hand-verified, data-backed manifest that
+# lives in the repo (with report images under assets/reports/), pass
+# manifest_path=<repo path> instead and the downloaded artifact is ignored.
 on:
   workflow_dispatch:
     inputs:
       content_indices:
-        description: "Comma-separated content indices from pending_content_review.json, e.g. '1'"
+        description: "Comma-separated content indices from the manifest, e.g. '1'"
         required: true
         type: string
       content_run_id:
-        description: "Run ID of the generate_content workflow that produced pending_content_review.json"
-        required: true
-        type: number
+        description: "Run ID of the generate_content workflow that produced pending_content_review.json (used only when manifest_path is empty)"
+        required: false
+        type: string
+      manifest_path:
+        description: "Optional repo-relative path to a committed content manifest (e.g. config/content/delhi_ncr_2026_paradox.json). When set, this is used instead of the artifact."
+        required: false
+        type: string
 
 jobs:
   generate:
@@ -28,16 +37,23 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Download content manifest (pending_content_review.json)
+      - name: Prepare content manifest (pending_content_review.json)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download "${{ inputs.content_run_id }}" \
-            --repo "${{ github.repository }}" \
-            --name "pending-content-${{ inputs.content_run_id }}" \
-            --dir /tmp/content-artifact
           mkdir -p output
-          cp "$(find /tmp/content-artifact -name 'pending_content_review.json' | head -1)" output/pending_content_review.json
+          if [ -n "${{ inputs.manifest_path }}" ]; then
+            echo "Using committed manifest: ${{ inputs.manifest_path }}"
+            cp "${{ inputs.manifest_path }}" output/pending_content_review.json
+          else
+            echo "Downloading manifest from generate_content run: ${{ inputs.content_run_id }}"
+            gh run download "${{ inputs.content_run_id }}" \
+              --repo "${{ github.repository }}" \
+              --name "pending-content-${{ inputs.content_run_id }}" \
+              --dir /tmp/content-artifact
+            cp "$(find /tmp/content-artifact -name 'pending_content_review.json' | head -1)" output/pending_content_review.json
+          fi
+          echo "Manifest contents: $(cat output/pending_content_review.json | head -c 200)"
       - name: Install ffmpeg
         run: |
           sudo apt-get update -qq

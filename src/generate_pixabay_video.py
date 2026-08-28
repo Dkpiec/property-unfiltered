@@ -179,6 +179,44 @@ def fetch_clip(client: pixabay.PixabayClient, queries: list[str],
 
 
 # ── Video track ────────────────────────────────────────────────────────
+def _image_segment(image: pathlib.Path, duration: float, content_type: str,
+                   workdir: pathlib.Path, out_path: pathlib.Path) -> None:
+    """Render a still image (e.g. a public report page) to a uniform video
+    segment: blurred backdrop + centered page + slow Ken Burns zoom.
+
+    Keeps the whole page readable (contain fit) while adding subtle motion.
+    """
+    w, h = DIMENSIONS[content_type]
+    frames = max(int(duration * FPS), FPS)
+
+    # Step 1: build a single composited frame (blurred bg + centered page).
+    comp = workdir / f"_comp_{out_path.stem}.png"
+    _run([
+        "ffmpeg", "-y", "-i", str(image),
+        "-filter_complex",
+        f"[0:v]split=2[bg][fg];"
+        f"[bg]scale={w}:{h}:force_original_aspect_ratio=increase,"
+        f"crop={w}:{h},boxblur=30:5,eq=brightness=-0.08[bgv];"
+        f"[fg]scale={w}:{h}:force_original_aspect_ratio=decrease[fgv];"
+        f"[bgv][fgv]overlay=(W-w)/2:(H-h)/2[v]",
+        "-map", "[v]", "-frames:v", "1", str(comp),
+    ])
+
+    # Step 2: slow zoom on the composite for the section duration.
+    try:
+        _run([
+            "ffmpeg", "-y", "-i", str(comp),
+            "-vf", f"zoompan=z='min(zoom+0.0006,1.15)':d={frames}:"
+                   f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                   f"s={w}x{h}:fps={FPS}",
+            "-t", f"{duration:.3f}",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+            "-pix_fmt", "yuv420p", "-r", str(FPS), str(out_path),
+        ])
+    finally:
+        comp.unlink(missing_ok=True)
+
+
 def _title_card_fallback(section: dict, index: int, duration: float,
                          content_type: str, workdir: pathlib.Path,
                          out_path: pathlib.Path) -> None:
@@ -249,6 +287,19 @@ def build_video_track(sections: list[dict], total_duration: float,
     for i, (section, dur) in enumerate(zip(sections, durations)):
         seg = workdir / f"seg_{i:03d}.mp4"
         kind = _section_kind(section, i, len(sections))
+        img = section.get("image")
+        if img:
+            img_path = (REPO_ROOT / img) if not pathlib.Path(img).is_absolute() else pathlib.Path(img)
+            if img_path.exists():
+                print(f"  📊 Section {i+1}: report image segment -> {img_path}")
+                try:
+                    _image_segment(img_path, dur, content_type, workdir, seg)
+                    segs.append(seg)
+                    continue
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  ⚠️ Image segment {i} failed: {exc}; falling back to clip")
+            else:
+                print(f"  ⚠️ Section {i+1}: image missing {img_path} — falling back to clip")
         queries = (_location_queries(section) if kind == "location"
                    else _queries_for_kind(kind, section))
         print(f"  🎬 Section {i+1}: kind={kind} queries={queries}")
@@ -309,27 +360,45 @@ def make_approx_srt(full_script: str, total_duration: float,
 def final_mux(video_track: pathlib.Path, audio: pathlib.Path,
               srt: pathlib.Path, total_duration: float, content_type: str,
               out_mp4: pathlib.Path) -> None:
-    srt_esc = str(srt).replace(":", "\\:").replace("'", "\\'")
+    """Mux video + audio into the final MP4.
+
+    Memory-safe two-pass strategy (no libass subtitle burn, which OOMs on
+    constrained runners): first re-encode the video track alone applying
+    fades, then stream-copy it together with audio + soft subtitles.
+    """
+    workdir = video_track.parent
+    faded = workdir / "video_faded.mp4"
     vf = [
         "fade=t=in:st=0:d=0.5",
         f"fade=t=out:st={max(total_duration-0.6, 0):.3f}:d=0.6",
-        f"subtitles={srt_esc}",
     ]
     _run([
         "ffmpeg", "-y",
         "-i", str(video_track),
-        "-i", str(audio),
-        "-filter_complex", f"[0:v]{','.join(vf)}[v]",
-        "-map", "[v]", "-map", "1:a",
+        "-vf", ",".join(vf),
         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
         "-profile:v", "baseline", "-pix_fmt", "yuv420p",
         "-x264-params", "rc-lookahead=1:sync-lookahead=0:frame-threads=1",
         "-threads", "1",
+        str(faded),
+    ], timeout=1500)
+
+    # Mux video (stream-copy) + audio + soft subtitles (mov_text).
+    _run([
+        "ffmpeg", "-y",
+        "-i", str(faded),
+        "-i", str(audio),
+        "-i", str(srt),
+        "-map", "0:v", "-map", "1:a", "-map", "2",
+        "-c:v", "copy",
         "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+        "-c:s", "mov_text",
+        "-metadata:s:s:0", "language=eng",
         "-movflags", "+faststart",
         "-shortest",
         str(out_mp4),
-    ], timeout=1500)
+    ], timeout=600)
+    faded.unlink(missing_ok=True)
 
 
 # ── Orchestration ──────────────────────────────────────────────────────
