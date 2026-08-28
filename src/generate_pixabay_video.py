@@ -179,6 +179,65 @@ def fetch_clip(client: pixabay.PixabayClient, queries: list[str],
 
 
 # ── Video track ────────────────────────────────────────────────────────
+def _fullbleed_segment(image: pathlib.Path, duration: float, content_type: str,
+                       workdir: pathlib.Path, out_path: pathlib.Path,
+                       cover: bool = False) -> None:
+    """Render a full-bleed still (chart/map/photo) with slow Ken Burns zoom.
+
+    Assets that are already 1920x1080 (charts, maps) fill the frame exactly
+    (`cover=False`, keep aspect). Photos are cover-cropped (`cover=True`).
+    """
+    w, h = DIMENSIONS[content_type]
+    frames = max(int(duration * FPS), FPS)
+    ar = ("force_original_aspect_ratio=increase" if cover
+          else "force_original_aspect_ratio=decrease")
+    scale = f"scale={w}:{h}:{ar}"
+    if cover:
+        scale += f",crop={w}:{h}"
+    _run([
+        "ffmpeg", "-y", "-i", str(image),
+        "-vf", f"{scale},zoompan=z='min(zoom+0.0006,1.15)':d={frames}:"
+               f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+               f"s={w}x{h}:fps={FPS}",
+        "-t", f"{duration:.3f}",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+        "-pix_fmt", "yuv420p", "-r", str(FPS), str(out_path),
+    ])
+
+
+def _logo_segment(image: pathlib.Path, duration: float, content_type: str,
+                  workdir: pathlib.Path, out_path: pathlib.Path) -> None:
+    """Render the brand logo intro: logo over a dark gradient, gentle zoom-in."""
+    w, h = DIMENSIONS[content_type]
+    frames = max(int(duration * FPS), FPS)
+    comp = workdir / f"_logo_{out_path.stem}.png"
+    # Dark gradient backdrop + logo centred (logo is 1024x576 -> ~40% width).
+    lw = int(w * 0.5)
+    lh = int(lw * 0.5625)
+    _run([
+        "ffmpeg", "-y",
+        "-f", "lavfi", "-i",
+        f"gradients=s={w}x{h}:c0=0x0f2027:c1=0x16282f:c2=0x2c5364:n=3",
+        "-i", str(image),
+        "-filter_complex",
+        f"[1:v]scale={lw}:{lh}[lg];"
+        f"[0:v][lg]overlay=(W-w)/2:(H-h)/2[v]",
+        "-map", "[v]", "-frames:v", "1", str(comp),
+    ])
+    try:
+        _run([
+            "ffmpeg", "-y", "-i", str(comp),
+            "-vf", f"zoompan=z='min(zoom+0.0008,1.18)':d={frames}:"
+                   f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                   f"s={w}x{h}:fps={FPS}",
+            "-t", f"{duration:.3f}",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+            "-pix_fmt", "yuv420p", "-r", str(FPS), str(out_path),
+        ])
+    finally:
+        comp.unlink(missing_ok=True)
+
+
 def _image_segment(image: pathlib.Path, duration: float, content_type: str,
                    workdir: pathlib.Path, out_path: pathlib.Path) -> None:
     """Render a still image (e.g. a public report page) to a uniform video
@@ -291,13 +350,39 @@ def build_video_track(sections: list[dict], total_duration: float,
         if img:
             img_path = (REPO_ROOT / img) if not pathlib.Path(img).is_absolute() else pathlib.Path(img)
             if img_path.exists():
-                print(f"  📊 Section {i+1}: report image segment -> {img_path}")
-                try:
-                    _image_segment(img_path, dur, content_type, workdir, seg)
-                    segs.append(seg)
-                    continue
-                except Exception as exc:  # noqa: BLE001
-                    print(f"  ⚠️ Image segment {i} failed: {exc}; falling back to clip")
+                visual = str(section.get("visual", "")).strip().lower()
+                if visual == "logo":
+                    print(f"  🏷️ Section {i+1}: logo intro segment -> {img_path}")
+                    try:
+                        _logo_segment(img_path, dur, content_type, workdir, seg)
+                        segs.append(seg)
+                        continue
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"  ⚠️ Logo segment {i} failed: {exc}; falling back to clip")
+                elif visual in ("chart", "map"):
+                    print(f"  📊 Section {i+1}: {visual} segment -> {img_path}")
+                    try:
+                        _fullbleed_segment(img_path, dur, content_type, workdir, seg)
+                        segs.append(seg)
+                        continue
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"  ⚠️ {visual} segment {i} failed: {exc}; falling back to clip")
+                elif visual == "photo":
+                    print(f"  🖼️ Section {i+1}: photo segment (cover) -> {img_path}")
+                    try:
+                        _fullbleed_segment(img_path, dur, content_type, workdir, seg, cover=True)
+                        segs.append(seg)
+                        continue
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"  ⚠️ photo segment {i} failed: {exc}; falling back to clip")
+                else:
+                    print(f"  📊 Section {i+1}: report image segment -> {img_path}")
+                    try:
+                        _image_segment(img_path, dur, content_type, workdir, seg)
+                        segs.append(seg)
+                        continue
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"  ⚠️ Image segment {i} failed: {exc}; falling back to clip")
             else:
                 print(f"  ⚠️ Section {i+1}: image missing {img_path} — falling back to clip")
         queries = (_location_queries(section) if kind == "location"
